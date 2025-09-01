@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
-import com.bildirimtelefon.app.service.SimpleNotificationService
+import com.bildirimtelefon.app.service.NotificationService
 import com.bildirimtelefon.app.utils.PreferenceManager
 
 class BootReceiver : BroadcastReceiver() {
@@ -28,7 +28,7 @@ class BootReceiver : BroadcastReceiver() {
                 if (preferenceManager.isAutoStartEnabled() && preferenceManager.isConnected()) {
                     Log.d(TAG, "Otomatik başlatma aktif, NotificationService başlatılıyor")
                     
-                    val serviceIntent = Intent(context, SimpleNotificationService::class.java)
+                    val serviceIntent = Intent(context, NotificationService::class.java)
                     
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(serviceIntent)
