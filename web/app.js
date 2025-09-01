@@ -82,6 +82,11 @@ class AndroidNotificationSystem {
             this.downloadAPK();
         });
 
+        // Debug butonu
+        document.getElementById('debug-btn').addEventListener('click', () => {
+            this.showDebugInfo();
+        });
+
         // Yenile butonu
         document.getElementById('refresh-notifications').addEventListener('click', () => {
             this.loadNotifications();
@@ -398,6 +403,60 @@ class AndroidNotificationSystem {
 
     downloadAPK() {
         this.showToast('APK dosyası henüz hazır değil. Android Studio ile derlenecek.', 'warning');
+    }
+
+    async showDebugInfo() {
+        try {
+            const response = await fetch('/api/debug');
+            const result = await response.json();
+
+            if (result.success) {
+                const debugInfo = `
+🔧 DEBUG BİLGİLERİ
+═══════════════════════════════════
+
+📊 SUNUCU DURUMU:
+• Sunucu Zamanı: ${new Date(result.serverTime).toLocaleString('tr-TR')}
+• Bağlı Cihaz Sayısı: ${result.connectedDevices}
+• WebSocket Bağlantıları: ${result.socketConnections}
+• WebSocket URL: ${result.webSocketUrl}
+
+📱 BAĞLI CİHAZLAR:
+${result.devices.length === 0 ? '• Hiç cihaz bağlı değil' : 
+  result.devices.map(d => 
+    `• ${d.deviceName} (${d.deviceModel})
+  - Android: ${d.androidVersion}
+  - Bağlandı: ${new Date(d.connectedAt).toLocaleString('tr-TR')}
+  - Son Görülme: ${new Date(d.lastSeen).toLocaleString('tr-TR')}
+  - Geçen Süre: ${Math.round(d.timeSinceLastSeen / 1000)} saniye`
+  ).join('\n\n')
+}
+
+📨 SON BİLDİRİMLER:
+${result.recentNotifications.length === 0 ? '• Hiç bildirim yok' :
+  result.recentNotifications.map(n => 
+    `• ${n.title}: ${n.message}
+  - Durum: ${n.status}
+  - Zaman: ${new Date(n.timestamp).toLocaleString('tr-TR')}`
+  ).join('\n\n')
+}
+
+🔍 SORUN GİDERME:
+• Android app açık mı?
+• QR kod tarandı mı?
+• Aynı WiFi ağında mı?
+• Android'de bildirim izni var mı?
+• Logcat'te hata var mı?
+                `;
+
+                alert(debugInfo);
+                console.log('DEBUG INFO:', result);
+            } else {
+                this.showToast('Debug bilgileri alınamadı', 'error');
+            }
+        } catch (error) {
+            this.showToast('Debug hatası: ' + error.message, 'error');
+        }
     }
 
     getStatusText(status) {

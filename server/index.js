@@ -31,6 +31,7 @@ let notifications = [];
 // Android cihaz bağlantısı
 io.on('connection', (socket) => {
     console.log('🔌 Yeni bağlantı:', socket.id);
+    console.log('📊 Toplam bağlantı sayısı:', io.engine.clientsCount);
 
     // Android cihaz kaydı
     socket.on('register-device', (deviceInfo) => {
@@ -42,10 +43,13 @@ io.on('connection', (socket) => {
         };
         
         connectedDevices.set(socket.id, device);
-        console.log('📱 Android cihaz kaydedildi:', deviceInfo.deviceName);
+        console.log('📱 Android cihaz kaydedildi:', deviceInfo.deviceName || 'Bilinmeyen Cihaz');
+        console.log('📊 Kayıtlı cihaz sayısı:', connectedDevices.size);
         
         // Web arayüzüne cihaz listesini gönder
-        io.emit('devices-updated', Array.from(connectedDevices.values()));
+        const deviceList = Array.from(connectedDevices.values());
+        console.log('📤 Cihaz listesi gönderiliyor:', deviceList.map(d => d.deviceName));
+        io.emit('devices-updated', deviceList);
     });
 
     // Cihaz bağlantısı kesildiğinde
@@ -115,8 +119,11 @@ app.post('/api/send-notification', async (req, res) => {
             console.log(`📤 Bildirim gönderildi (${deviceId}):`, message);
         } else {
             // Tüm bağlı cihazlara gönder
+            const deviceCount = connectedDevices.size;
+            console.log(`📤 Bildirim ${deviceCount} cihaza gönderiliyor:`, message);
+            console.log('📱 Bağlı cihazlar:', Array.from(connectedDevices.values()).map(d => d.deviceName));
             io.emit('new-notification', notification);
-            console.log('📤 Bildirim tüm cihazlara gönderildi:', message);
+            console.log('✅ Bildirim emit edildi');
         }
 
         res.json({
@@ -270,6 +277,29 @@ app.get('/health', (req, res) => {
         connectedDevices: connectedDevices.size,
         totalNotifications: notifications.length,
         timestamp: new Date().toISOString()
+    });
+});
+
+// Debug endpoint - cihaz detayları
+app.get('/api/debug', (req, res) => {
+    const deviceDetails = Array.from(connectedDevices.values()).map(device => ({
+        id: device.id,
+        deviceName: device.deviceName,
+        deviceModel: device.deviceModel,
+        androidVersion: device.androidVersion,
+        connectedAt: device.connectedAt,
+        lastSeen: device.lastSeen,
+        timeSinceLastSeen: new Date() - device.lastSeen
+    }));
+
+    res.json({
+        success: true,
+        serverTime: new Date().toISOString(),
+        connectedDevices: connectedDevices.size,
+        socketConnections: io.engine.clientsCount,
+        devices: deviceDetails,
+        recentNotifications: notifications.slice(0, 5),
+        webSocketUrl: `ws://localhost:${PORT}`
     });
 });
 
