@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 Bildirim Telefon - Android Localhost System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-mobile-alt me-2"></i>
+                Bildirim Telefon
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="connection-status">
+                    <i class="fas fa-circle text-success me-1"></i>
+                    Sunucu Aktif
+                </span>
+                <span class="navbar-text" id="device-count">
+                    <i class="fas fa-mobile-alt me-1"></i>
+                    <span id="connected-count">0</span> Cihaz
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Android App Bağlantı Bölümü -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fab fa-android me-2"></i>
+                            Android Telefon Bağlantısı
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6>Adımlar:</h6>
+                                <ol>
+                                    <li>Android telefonunuza bildirim uygulamasını yükleyin</li>
+                                    <li>Uygulamayı açın ve QR kodu taratın</li>
+                                    <li>Bildirim izinlerini verin</li>
+                                    <li>Telefon otomatik olarak bağlanacak</li>
+                                </ol>
+                                <div class="mt-3">
+                                    <button class="btn btn-info me-2" id="show-qr-btn">
+                                        <i class="fas fa-qrcode me-2"></i>
+                                        QR Kod Göster
+                                    </button>
+                                    <button class="btn btn-outline-info me-2" id="download-apk-btn">
+                                        <i class="fas fa-download me-2"></i>
+                                        APK İndir
+                                    </button>
+                                    <button class="btn btn-outline-secondary" id="debug-btn">
+                                        <i class="fas fa-bug me-2"></i>
+                                        Debug
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div id="qr-code-container" class="d-none">
+                                    <img id="qr-code-image" class="img-fluid border rounded" style="max-width: 200px;">
+                                    <p class="small text-muted mt-2">QR kodu Android uygulaması ile taratın</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bağlı Cihazlar -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-mobile-alt me-2"></i>
+                            Bağlı Android Cihazlar
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="connected-devices">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-mobile-alt fa-3x mb-3 opacity-50"></i>
+                                <p>Henüz bağlı cihaz yok</p>
+                                <p class="small">Android uygulamasını yükleyip QR kodu taratın</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Sol Panel - Bildirim Gönderme -->
+            <div class="col-lg-8">
+                <!-- Acil Durum -->
+                <div class="card mb-4 border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Acil Durum Bildirimi
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="emergency-message" 
+                                       placeholder="Acil durum mesajı" 
+                                       value="ACİL DURUM! Hemen kontrol edin!">
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-danger w-100" id="emergency-btn">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    ACİL DURUM GÖNDER
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Normal Bildirim -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-bell me-2"></i>
+                            Bildirim Gönder
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="notification-form">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="notification-title" class="form-label">Başlık</label>
+                                    <input type="text" class="form-control" id="notification-title" 
+                                           placeholder="Bildirim başlığı" value="Yeni Bildirim">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="target-device" class="form-label">Hedef Cihaz</label>
+                                    <select class="form-select" id="target-device">
+                                        <option value="">Tüm Cihazlar</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notification-message" class="form-label">Mesaj</label>
+                                <textarea class="form-control" id="notification-message" rows="3" 
+                                          placeholder="Gönderilecek mesajı yazın..." required></textarea>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="urgent-notification" checked>
+                                        <label class="form-check-label" for="urgent-notification">
+                                            Acil Bildirim
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="sound-notification" checked>
+                                        <label class="form-check-label" for="sound-notification">
+                                            Ses Çıkar
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="vibrate-notification" checked>
+                                        <label class="form-check-label" for="vibrate-notification">
+                                            Titreşim
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Bildirim Gönder
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Sesli Mesaj -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-volume-up me-2"></i>
+                            Sesli Mesaj Gönder
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="voice-form">
+                            <div class="row mb-3">
+                                <div class="col-md-8">
+                                    <label for="voice-message" class="form-label">Sesli Mesaj</label>
+                                    <textarea class="form-control" id="voice-message" rows="2" 
+                                              placeholder="Okunacak mesajı yazın..." required></textarea>
+                                    <div class="form-text">Bu mesaj Android telefonda sesli olarak okunacak</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="voice-target-device" class="form-label">Hedef Cihaz</label>
+                                    <select class="form-select" id="voice-target-device">
+                                        <option value="">Tüm Cihazlar</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-microphone me-2"></i>
+                                Sesli Mesaj Gönder
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ Panel - Geçmiş ve İstatistikler -->
+            <div class="col-lg-4">
+                <!-- İstatistikler -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            İstatistikler
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="stat-item">
+                                    <h3 class="text-primary" id="total-notifications">0</h3>
+                                    <small class="text-muted">Toplam Bildirim</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-item">
+                                    <h3 class="text-success" id="delivered-notifications">0</h3>
+                                    <small class="text-muted">Teslim Edilen</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Son Bildirimler -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Son Bildirimler
+                        </h5>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div id="recent-notifications">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-inbox fa-2x mb-3 opacity-50"></i>
+                                <p>Henüz bildirim yok</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-outline-primary btn-sm w-100" id="refresh-notifications">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            Yenile
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="notification-toast" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-bell text-primary me-2"></i>
+                <strong class="me-auto">Bildirim</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toast-message">
+                <!-- Toast mesajı -->
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div class="modal fade" id="qr-modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-qrcode me-2"></i>
+                        Android App Bağlantı Kodu
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="modal-qr-image" class="img-fluid mb-3" style="max-width: 300px;">
+                    <p class="text-muted">Bu QR kodu Android uygulaması ile taratın</p>
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>Sunucu:</strong> http://localhost:3000<br>
+                            <strong>WebSocket:</strong> ws://localhost:3000
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

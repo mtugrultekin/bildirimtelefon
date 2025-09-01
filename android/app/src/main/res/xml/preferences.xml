@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="Cihaz Ayarları"
+        android:icon="@drawable/ic_settings">
+
+        <EditTextPreference
+            android:key="device_name"
+            android:title="@string/device_name"
+            android:defaultValue="Android Cihaz"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="Bildirim Ayarları"
+        android:icon="@drawable/ic_notification">
+
+        <SwitchPreferenceCompat
+            android:key="auto_start"
+            android:title="@string/auto_start"
+            android:summary="@string/auto_start_summary"
+            android:defaultValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="sound_enabled"
+            android:title="@string/sound_notifications"
+            android:summary="@string/sound_notifications_summary"
+            android:defaultValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="vibrate_enabled"
+            android:title="@string/vibrate_notifications"
+            android:summary="@string/vibrate_notifications_summary"
+            android:defaultValue="true"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="voice_enabled"
+            android:title="@string/voice_messages"
+            android:summary="@string/voice_messages_summary"
+            android:defaultValue="true"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

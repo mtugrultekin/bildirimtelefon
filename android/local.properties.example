@@ -1,0 +1,14 @@
+# This file contains the path of the Android SDK location.
+# For customization when using a Version Control System, please read the
+# header note.
+
+# Example SDK path (update this to your actual Android SDK path):
+# Windows: C:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
+# macOS: /Users/YourUsername/Library/Android/sdk
+# Linux: /home/YourUsername/Android/Sdk
+
+sdk.dir=/path/to/your/android/sdk
+
+# Example:
+# sdk.dir=/Users/john/Library/Android/sdk
+# sdk.dir=C\:\\Users\\john\\AppData\\Local\\Android\\Sdk

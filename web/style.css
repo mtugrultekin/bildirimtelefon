@@ -1,0 +1,370 @@
+/* Android Localhost Bildirim Sistemi Stilleri */
+:root {
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --android-green: #3DDC84;
+    --android-blue: #4285F4;
+}
+
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.navbar-brand i {
+    animation: phoneRing 2s infinite;
+}
+
+@keyframes phoneRing {
+    0%, 50%, 100% { transform: rotate(0deg); }
+    10%, 30% { transform: rotate(-10deg); }
+    20%, 40% { transform: rotate(10deg); }
+}
+
+/* Kartlar */
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: rgba(13, 110, 253, 0.1);
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: 1px solid rgba(13, 110, 253, 0.2);
+}
+
+/* Android tema renkleri */
+.border-info .card-header {
+    background: linear-gradient(135deg, var(--android-blue), var(--android-green));
+}
+
+/* Cihaz kartları */
+.device-card {
+    border: 2px solid var(--android-green);
+    background: rgba(61, 220, 132, 0.1);
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.device-card:hover {
+    background: rgba(61, 220, 132, 0.2);
+    transform: scale(1.02);
+}
+
+.device-online {
+    color: var(--android-green);
+}
+
+.device-offline {
+    color: #6c757d;
+}
+
+/* Form elemanları */
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--android-blue);
+    box-shadow: 0 0 0 0.2rem rgba(66, 133, 244, 0.25);
+}
+
+/* Butonlar */
+.btn {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.6rem 1.5rem;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Acil durum butonu */
+#emergency-btn {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    animation: emergencyPulse 2s infinite;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+@keyframes emergencyPulse {
+    0% { 
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+/* QR Kod */
+.qr-container {
+    background: white;
+    padding: 1rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Bildirim geçmişi */
+.notification-item {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-left: 4px solid var(--primary-color);
+    transition: all 0.3s ease;
+}
+
+.notification-item:hover {
+    background: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.notification-item.emergency {
+    border-left-color: var(--danger-color);
+    background: rgba(220, 53, 69, 0.05);
+}
+
+.notification-item.voice {
+    border-left-color: var(--warning-color);
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.notification-item.delivered {
+    border-left-color: var(--success-color);
+}
+
+.notification-item.pending {
+    border-left-color: #6c757d;
+    opacity: 0.7;
+}
+
+/* Status göstergesi */
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.status-delivered {
+    background-color: var(--success-color);
+    animation: statusBlink 2s infinite;
+}
+
+.status-pending {
+    background-color: var(--warning-color);
+    animation: statusPulse 1s infinite;
+}
+
+.status-failed {
+    background-color: var(--danger-color);
+}
+
+@keyframes statusBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.3; }
+}
+
+@keyframes statusPulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* İstatistik kartları */
+.stat-item {
+    padding: 1rem;
+}
+
+.stat-item h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+/* Toast bildirimleri */
+.toast {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.toast.success {
+    background: linear-gradient(135deg, var(--success-color), #20c997);
+    color: white;
+}
+
+.toast.error {
+    background: linear-gradient(135deg, var(--danger-color), #e74c3c);
+    color: white;
+}
+
+.toast.warning {
+    background: linear-gradient(135deg, var(--warning-color), #f39c12);
+    color: #212529;
+}
+
+/* Android tema ikonları */
+.fab.fa-android {
+    color: var(--android-green);
+}
+
+.fas.fa-mobile-alt {
+    color: var(--android-blue);
+}
+
+/* Animasyonlar */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+/* Bağlantı durumu */
+.connection-status {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-size: 0.875rem;
+}
+
+.connection-status.connected {
+    background: rgba(25, 135, 84, 0.9);
+}
+
+.connection-status.disconnected {
+    background: rgba(220, 53, 69, 0.9);
+}
+
+/* Responsive düzenlemeler */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 10px;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .stat-item h3 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Loading spinner */
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--android-blue);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* QR kod modal */
+#qr-modal .modal-content {
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Özel checkbox ve radio butonlar */
+.form-check-input:checked {
+    background-color: var(--android-green);
+    border-color: var(--android-green);
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(61, 220, 132, 0.25);
+}
+
+/* Başlık animasyonları */
+h1, h2, h3, h4, h5 {
+    background: linear-gradient(135deg, var(--android-blue), var(--android-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Özel scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--android-blue);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--android-green);
+}
