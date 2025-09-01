@@ -50,7 +50,6 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             createNotificationChannels()
             deviceId = "android_${System.currentTimeMillis()}"
             
-            // OkHttp client oluştur
             okHttpClient = OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
@@ -67,14 +66,13 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
         try {
             startForeground(FOREGROUND_ID, createForegroundNotification())
             
-            // Test notification action
-            if (intent?.getStringExtra("action") == "show_test_notification") {
+            val action = intent?.getStringExtra("action")
+            if (action == "show_test_notification") {
                 val title = intent.getStringExtra("title") ?: "Test"
                 val message = intent.getStringExtra("message") ?: "Test mesajı"
                 Log.d(TAG, "🧪 Test notification action alındı: $title")
                 showTestNotification(title, message)
             } else {
-                // Normal başlatma - HTTP ile cihaz kaydet ve polling başlat
                 Log.d(TAG, "🔄 Normal başlatma - HTTP polling başlıyor...")
                 registerDeviceHttp()
                 startPolling()
@@ -113,14 +111,13 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
         try {
             Log.d(TAG, "🔗 HTTP ile cihaz kaydediliyor: $serverUrl")
             
-            val deviceInfo = JSONObject().apply {
-                put("deviceId", deviceId)
-                put("deviceName", "${Build.MANUFACTURER} ${Build.MODEL}")
-                put("deviceModel", Build.MODEL)
-                put("androidVersion", Build.VERSION.RELEASE)
-                put("appVersion", "1.0")
-                put("registeredAt", System.currentTimeMillis())
-            }
+            val deviceInfo = JSONObject()
+            deviceInfo.put("deviceId", deviceId)
+            deviceInfo.put("deviceName", "${Build.MANUFACTURER} ${Build.MODEL}")
+            deviceInfo.put("deviceModel", Build.MODEL)
+            deviceInfo.put("androidVersion", Build.VERSION.RELEASE)
+            deviceInfo.put("appVersion", "1.0")
+            deviceInfo.put("registeredAt", System.currentTimeMillis())
             
             val requestBody = deviceInfo.toString().toRequestBody("application/json".toMediaType())
             val request = Request.Builder()
@@ -131,7 +128,6 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             okHttpClient?.newCall(request)?.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
                     Log.e(TAG, "❌ Cihaz kaydetme HTTP hatası", e)
-                    // 10 saniye sonra tekrar dene
                     pollingHandler.postDelayed({ registerDeviceHttp() }, 10000)
                 }
 
@@ -142,7 +138,6 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
                         updateForegroundNotification()
                     } else {
                         Log.e(TAG, "❌ Cihaz kaydetme başarısız: ${response.code}")
-                        // 10 saniye sonra tekrar dene
                         pollingHandler.postDelayed({ registerDeviceHttp() }, 10000)
                     }
                 }
@@ -182,7 +177,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             override fun run() {
                 if (isRunning && isRegistered) {
                     checkForNotifications()
-                    pollingHandler.postDelayed(this, 3000) // 3 saniyede bir kontrol
+                    pollingHandler.postDelayed(this, 3000)
                 }
             }
         }
@@ -206,12 +201,13 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
 
                 override fun onResponse(call: Call, response: Response) {
                     if (response.isSuccessful) {
-                        response.body?.string()?.let { responseBody ->
+                        val responseBody = response.body?.string()
+                        if (responseBody != null) {
                             try {
                                 val jsonResponse = JSONObject(responseBody)
-                                if (jsonResponse.getBoolean("success")) {
+                                val success = jsonResponse.getBoolean("success")
+                                if (success) {
                                     val notifications = jsonResponse.getJSONArray("notifications")
-                                    
                                     for (i in 0 until notifications.length()) {
                                         val notification = notifications.getJSONObject(i)
                                         processNotification(notification)
@@ -237,16 +233,18 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             val urgent = notification.optBoolean("urgent", false)
             val emergency = notification.optBoolean("emergency", false)
 
-            Log.d(TAG, "📨 Bildirim işleniyor: $title - $message (urgent: $urgent, emergency: $emergency)")
+            Log.d(TAG, "📨 Bildirim işleniyor: $title - $message")
 
-            if (emergency) {
-                showNotification(id, "🚨 $title", message, true, true, true)
-                textToSpeech?.speak("Acil durum: $message", TextToSpeech.QUEUE_FLUSH, null, "emergency_$id")
-            } else {
-                showNotification(id, title, message, urgent, true, true)
+            when {
+                emergency -> {
+                    showNotification(id, "🚨 $title", message, true, true, true)
+                    textToSpeech?.speak("Acil durum: $message", TextToSpeech.QUEUE_FLUSH, null, "emergency_$id")
+                }
+                else -> {
+                    showNotification(id, title, message, urgent, true, true)
+                }
             }
 
-            // Bildirim işlendiğini sunucuya bildir
             markNotificationAsDelivered(id)
 
         } catch (e: Exception) {
@@ -259,12 +257,11 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
         if (serverUrl.isEmpty()) return
 
         try {
-            val statusData = JSONObject().apply {
-                put("notificationId", notificationId)
-                put("deviceId", deviceId)
-                put("status", "delivered")
-                put("timestamp", System.currentTimeMillis())
-            }
+            val statusData = JSONObject()
+            statusData.put("notificationId", notificationId)
+            statusData.put("deviceId", deviceId)
+            statusData.put("status", "delivered")
+            statusData.put("timestamp", System.currentTimeMillis())
             
             val requestBody = statusData.toString().toRequestBody("application/json".toMediaType())
             val request = Request.Builder()
@@ -291,31 +288,27 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             try {
                 val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 
-                // Normal bildirim kanalı
                 val normalChannel = NotificationChannel(
                     NOTIFICATION_CHANNEL_ID,
                     "Bildirim Telefon",
                     NotificationManager.IMPORTANCE_DEFAULT
-                ).apply {
-                    description = "Bildirim telefon sistemi bildirimleri"
-                    setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), null)
-                    enableVibration(true)
-                    vibrationPattern = longArrayOf(0, 250, 250, 250)
-                }
+                )
+                normalChannel.description = "Bildirim telefon sistemi bildirimleri"
+                normalChannel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION), null)
+                normalChannel.enableVibration(true)
+                normalChannel.vibrationPattern = longArrayOf(0, 250, 250, 250)
                 
-                // Acil durum bildirim kanalı
                 val urgentChannel = NotificationChannel(
                     NOTIFICATION_CHANNEL_URGENT_ID,
                     "Acil Durum Bildirimleri",
                     NotificationManager.IMPORTANCE_HIGH
-                ).apply {
-                    description = "Acil durum bildirimleri"
-                    setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM), null)
-                    enableVibration(true)
-                    vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 500)
-                    enableLights(true)
-                    lightColor = android.graphics.Color.RED
-                }
+                )
+                urgentChannel.description = "Acil durum bildirimleri"
+                urgentChannel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM), null)
+                urgentChannel.enableVibration(true)
+                urgentChannel.vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 500)
+                urgentChannel.enableLights(true)
+                urgentChannel.lightColor = android.graphics.Color.RED
                 
                 notificationManager.createNotificationChannel(normalChannel)
                 notificationManager.createNotificationChannel(urgentChannel)
@@ -336,7 +329,11 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val statusText = if (isRegistered) "✅ Sunucuya bağlı (HTTP)" else "🔄 Bağlanıyor..."
+            val statusText: String = if (isRegistered) {
+                "✅ Sunucuya bağlı (HTTP)"
+            } else {
+                "🔄 Bağlanıyor..."
+            }
 
             return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle("📱 Bildirim Telefon")
@@ -350,7 +347,6 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
         } catch (e: Exception) {
             Log.e(TAG, "❌ Foreground notification oluşturma hatası", e)
             
-            // Fallback basit notification
             return Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle("Bildirim Telefon")
                 .setContentText("Servis aktif")
@@ -377,8 +373,17 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val channelId = if (urgent) NOTIFICATION_CHANNEL_URGENT_ID else NOTIFICATION_CHANNEL_ID
-            val priority = if (urgent) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
+            val channelId: String = if (urgent) {
+                NOTIFICATION_CHANNEL_URGENT_ID
+            } else {
+                NOTIFICATION_CHANNEL_ID
+            }
+            
+            val priority: Int = if (urgent) {
+                NotificationCompat.PRIORITY_HIGH
+            } else {
+                NotificationCompat.PRIORITY_DEFAULT
+            }
 
             val builder = NotificationCompat.Builder(this, channelId)
                 .setContentTitle(title)
@@ -396,15 +401,19 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             if (vibrate) {
                 val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val pattern = if (urgent) 
-                        longArrayOf(0, 500, 200, 500, 200, 500) else 
+                    val pattern: LongArray = if (urgent) {
+                        longArrayOf(0, 500, 200, 500, 200, 500)
+                    } else {
                         longArrayOf(0, 250, 250, 250)
+                    }
                     vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
                 } else {
                     @Suppress("DEPRECATION")
-                    val pattern = if (urgent) 
-                        longArrayOf(0, 500, 200, 500, 200, 500) else 
+                    val pattern: LongArray = if (urgent) {
+                        longArrayOf(0, 500, 200, 500, 200, 500)
+                    } else {
                         longArrayOf(0, 250, 250, 250)
+                    }
                     vibrator.vibrate(pattern, -1)
                 }
             }
