@@ -51,9 +51,22 @@ cd android
 
 #### Komut satırından:
 ```bash
+# JAVA_HOME'u set et (Linux/macOS)
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64  # Linux
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home  # macOS
+
 cd android
 ./gradlew assembleDebug
 # APK dosyası: android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+#### Windows:
+```cmd
+# JAVA_HOME'u set et
+set JAVA_HOME=C:\Program Files\Java\jdk-17
+
+cd android
+gradlew.bat assembleDebug
 ```
 
 ## 📋 Kullanım Adımları
