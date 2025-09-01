@@ -16,4 +16,7 @@
     <color name="warning_color">#FFC107</color>
     <color name="android_green">#3DDC84</color>
     <color name="android_blue">#4285F4</color>
+    
+    <!-- Launcher Icon -->
+    <color name="ic_launcher_background">#0D6EFD</color>
 </resources>
