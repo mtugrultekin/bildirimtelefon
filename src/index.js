@@ -14,6 +14,9 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Static files
+app.use(express.static('public'));
+
 // Routes
 app.use('/api/notification', notificationRoutes);
 app.use('/api/phone', phoneRoutes);
