@@ -6,11 +6,12 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
+import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.bildirimtelefon.app.databinding.ActivityMainBinding
 import com.bildirimtelefon.app.service.NotificationService
 import com.bildirimtelefon.app.utils.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -20,10 +21,18 @@ import java.util.*
 
 class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     
-    private lateinit var binding: ActivityMainBinding
     private lateinit var preferenceManager: PreferenceManager
     private var textToSpeech: TextToSpeech? = null
     private val PERMISSION_REQUEST_CODE = 1001
+    
+    // UI Elements
+    private lateinit var deviceNameText: TextView
+    private lateinit var androidVersionText: TextView
+    private lateinit var connectionStatusText: TextView
+    private lateinit var connectButton: Button
+    private lateinit var settingsButton: Button
+    private lateinit var testNotificationButton: Button
+    private lateinit var testVoiceButton: Button
 
     private val qrScannerLauncher = registerForActivityResult(ScanContract()) { result ->
         if (result.contents != null) {
@@ -35,28 +44,41 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
         
-        preferenceManager = PreferenceManager(this)
-        textToSpeech = TextToSpeech(this, this)
-        
-        setupUI()
-        checkPermissions()
-        updateConnectionStatus()
+        try {
+            setContentView(R.layout.activity_main_simple)
+            
+            preferenceManager = PreferenceManager(this)
+            textToSpeech = TextToSpeech(this, this)
+            
+            initViews()
+            setupUI()
+            checkPermissions()
+            updateConnectionStatus()
+            
+        } catch (e: Exception) {
+            Toast.makeText(this, "Başlatma hatası: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
+        }
+    }
+    
+    private fun initViews() {
+        deviceNameText = findViewById(R.id.deviceNameText)
+        androidVersionText = findViewById(R.id.androidVersionText)
+        connectionStatusText = findViewById(R.id.connectionStatusText)
+        connectButton = findViewById(R.id.connectButton)
+        settingsButton = findViewById(R.id.settingsButton)
+        testNotificationButton = findViewById(R.id.testNotificationButton)
+        testVoiceButton = findViewById(R.id.testVoiceButton)
     }
 
     private fun setupUI() {
-        // Toolbar
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.title = "Bildirim Telefon"
-        
         // Cihaz bilgileri
-        binding.deviceNameText.text = "${Build.MANUFACTURER} ${Build.MODEL}"
-        binding.androidVersionText.text = "Android ${Build.VERSION.RELEASE}"
+        deviceNameText.text = "${Build.MANUFACTURER} ${Build.MODEL}"
+        androidVersionText.text = "Android ${Build.VERSION.RELEASE}"
         
         // Buton click listeners
-        binding.connectButton.setOnClickListener {
+        connectButton.setOnClickListener {
             if (preferenceManager.isConnected()) {
                 disconnectFromServer()
             } else {
@@ -64,15 +86,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
         
-        binding.settingsButton.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
+        settingsButton.setOnClickListener {
+            try {
+                startActivity(Intent(this, SettingsActivity::class.java))
+            } catch (e: Exception) {
+                Toast.makeText(this, "Ayarlar açılamadı", Toast.LENGTH_SHORT).show()
+            }
         }
         
-        binding.testNotificationButton.setOnClickListener {
+        testNotificationButton.setOnClickListener {
             testNotification()
         }
         
-        binding.testVoiceButton.setOnClickListener {
+        testVoiceButton.setOnClickListener {
             testVoiceMessage()
         }
         
@@ -105,15 +131,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun startQRScanner() {
-        val options = ScanOptions().apply {
-            setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-            setPrompt("QR kodu tarayın")
-            setCameraId(0)
-            setBeepEnabled(true)
-            setBarcodeImageEnabled(true)
-            setOrientationLocked(false)
+        try {
+            val options = ScanOptions().apply {
+                setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+                setPrompt("QR kodu tarayın")
+                setCameraId(0)
+                setBeepEnabled(true)
+                setBarcodeImageEnabled(true)
+                setOrientationLocked(false)
+            }
+            qrScannerLauncher.launch(options)
+        } catch (e: Exception) {
+            Toast.makeText(this, "QR tarayıcı açılamadı: ${e.message}", Toast.LENGTH_LONG).show()
         }
-        qrScannerLauncher.launch(options)
     }
 
     private fun handleQRResult(qrContent: String) {
@@ -130,36 +160,52 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 .show()
                 
         } catch (e: Exception) {
-            Toast.makeText(this, "Geçersiz QR kod", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Geçersiz QR kod: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun connectToServer(connectionInfo: ConnectionInfo) {
-        preferenceManager.saveConnectionInfo(connectionInfo)
-        startNotificationService()
-        updateConnectionStatus()
-        Toast.makeText(this, "Sunucuya bağlanıyor...", Toast.LENGTH_SHORT).show()
+        try {
+            preferenceManager.saveConnectionInfo(connectionInfo)
+            startNotificationService()
+            updateConnectionStatus()
+            Toast.makeText(this, "Sunucuya bağlanıyor...", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Bağlantı hatası: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun disconnectFromServer() {
-        stopNotificationService()
-        preferenceManager.clearConnectionInfo()
-        updateConnectionStatus()
-        Toast.makeText(this, "Sunucu bağlantısı kesildi", Toast.LENGTH_SHORT).show()
+        try {
+            stopNotificationService()
+            preferenceManager.clearConnectionInfo()
+            updateConnectionStatus()
+            Toast.makeText(this, "Sunucu bağlantısı kesildi", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Bağlantı kesme hatası: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun startNotificationService() {
-        val intent = Intent(this, NotificationService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
+        try {
+            val intent = Intent(this, NotificationService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Servis başlatılamadı: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun stopNotificationService() {
-        val intent = Intent(this, NotificationService::class.java)
-        stopService(intent)
+        try {
+            val intent = Intent(this, NotificationService::class.java)
+            stopService(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Servis durdurulamadı: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun isServiceRunning(): Boolean {
@@ -167,68 +213,92 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun updateConnectionStatus() {
-        val isConnected = preferenceManager.isConnected()
-        val serverUrl = preferenceManager.getServerUrl()
-        
-        if (isConnected && serverUrl.isNotEmpty()) {
-            binding.connectionStatusText.text = "Bağlı: $serverUrl"
-            binding.connectionStatusText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
-            binding.connectButton.text = "Bağlantıyı Kes"
-            binding.connectButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
-            binding.testNotificationButton.isEnabled = true
-            binding.testVoiceButton.isEnabled = true
-        } else {
-            binding.connectionStatusText.text = "Bağlı değil"
-            binding.connectionStatusText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
-            binding.connectButton.text = "QR Kod Tarat"
-            binding.connectButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_blue_bright))
-            binding.testNotificationButton.isEnabled = false
-            binding.testVoiceButton.isEnabled = false
+        try {
+            val isConnected = preferenceManager.isConnected()
+            val serverUrl = preferenceManager.getServerUrl()
+            
+            if (isConnected && serverUrl.isNotEmpty()) {
+                connectionStatusText.text = "Bağlı: $serverUrl"
+                connectionStatusText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
+                connectButton.text = "Bağlantıyı Kes"
+                connectButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
+                testNotificationButton.isEnabled = true
+                testVoiceButton.isEnabled = true
+            } else {
+                connectionStatusText.text = "Bağlı değil"
+                connectionStatusText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
+                connectButton.text = "QR Kod Tarat"
+                connectButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_blue_bright))
+                testNotificationButton.isEnabled = false
+                testVoiceButton.isEnabled = false
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "UI güncelleme hatası: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun testNotification() {
-        val intent = Intent("com.bildirimtelefon.app.TEST_NOTIFICATION")
-        intent.putExtra("title", "Test Bildirimi")
-        intent.putExtra("message", "Bu bir test bildirimidir.")
-        intent.putExtra("urgent", false)
-        sendBroadcast(intent)
-        
-        Toast.makeText(this, "Test bildirimi gönderildi", Toast.LENGTH_SHORT).show()
+        try {
+            val intent = Intent("com.bildirimtelefon.app.TEST_NOTIFICATION")
+            intent.putExtra("title", "Test Bildirimi")
+            intent.putExtra("message", "Bu bir test bildirimidir.")
+            intent.putExtra("urgent", false)
+            sendBroadcast(intent)
+            
+            Toast.makeText(this, "Test bildirimi gönderildi", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Test bildirimi hatası: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun testVoiceMessage() {
-        if (textToSpeech?.isSpeaking == false) {
-            val message = getString(R.string.default_voice_message)
-            textToSpeech?.speak(
-                message,
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                "test_message"
-            )
-            Toast.makeText(this, getString(R.string.test_voice_playing), Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(this, getString(R.string.voice_already_playing), Toast.LENGTH_SHORT).show()
+        try {
+            if (textToSpeech?.isSpeaking == false) {
+                val message = "Bu bir test sesli mesajıdır. Bildirim telefon sistemi çalışıyor."
+                textToSpeech?.speak(
+                    message,
+                    TextToSpeech.QUEUE_FLUSH,
+                    null,
+                    "test_message"
+                )
+                Toast.makeText(this, "Test sesli mesajı çalıyor", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Sesli mesaj zaten çalıyor", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Sesli mesaj hatası: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            val result = textToSpeech?.setLanguage(Locale("tr", "TR"))
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                // Türkçe desteklenmiyorsa İngilizce kullan
-                textToSpeech?.setLanguage(Locale.ENGLISH)
+        try {
+            if (status == TextToSpeech.SUCCESS) {
+                val result = textToSpeech?.setLanguage(Locale("tr", "TR"))
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    // Türkçe desteklenmiyorsa İngilizce kullan
+                    textToSpeech?.setLanguage(Locale.ENGLISH)
+                }
             }
+        } catch (e: Exception) {
+            Toast.makeText(this, "TTS başlatma hatası: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        updateConnectionStatus()
+        try {
+            updateConnectionStatus()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Resume hatası: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onDestroy() {
-        textToSpeech?.shutdown()
+        try {
+            textToSpeech?.shutdown()
+        } catch (e: Exception) {
+            // Ignore
+        }
         super.onDestroy()
     }
 
@@ -239,22 +309,26 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            val deniedPermissions = mutableListOf<String>()
-            
-            for (i in permissions.indices) {
-                if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
-                    deniedPermissions.add(permissions[i])
+        try {
+            if (requestCode == PERMISSION_REQUEST_CODE) {
+                val deniedPermissions = mutableListOf<String>()
+                
+                for (i in permissions.indices) {
+                    if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                        deniedPermissions.add(permissions[i])
+                    }
+                }
+                
+                if (deniedPermissions.isNotEmpty()) {
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle("İzin Gerekli")
+                        .setMessage("Uygulamanın düzgün çalışması için gerekli izinler verilmedi.")
+                        .setPositiveButton("Tamam", null)
+                        .show()
                 }
             }
-            
-            if (deniedPermissions.isNotEmpty()) {
-                MaterialAlertDialogBuilder(this)
-                    .setTitle("İzin Gerekli")
-                    .setMessage("Uygulamanın düzgün çalışması için gerekli izinler verilmedi. Ayarlardan izinleri aktifleştirebilirsiniz.")
-                    .setPositiveButton("Tamam", null)
-                    .show()
-            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "İzin kontrolü hatası: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
