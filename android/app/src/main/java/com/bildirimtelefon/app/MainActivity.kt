@@ -46,17 +46,32 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         super.onCreate(savedInstanceState)
         
         try {
+            android.util.Log.d("MainActivity", "🚀 MainActivity başlatılıyor...")
             setContentView(R.layout.activity_main_simple)
+            android.util.Log.d("MainActivity", "✅ Layout set edildi")
             
             preferenceManager = PreferenceManager(this)
+            android.util.Log.d("MainActivity", "✅ PreferenceManager oluşturuldu")
+            
             textToSpeech = TextToSpeech(this, this)
+            android.util.Log.d("MainActivity", "✅ TextToSpeech başlatıldı")
             
             initViews()
+            android.util.Log.d("MainActivity", "✅ Views initialize edildi")
+            
             setupUI()
+            android.util.Log.d("MainActivity", "✅ UI setup tamamlandı")
+            
             checkPermissions()
+            android.util.Log.d("MainActivity", "✅ Permissions kontrol edildi")
+            
             updateConnectionStatus()
+            android.util.Log.d("MainActivity", "✅ Connection status güncellendi")
+            
+            android.util.Log.d("MainActivity", "🎉 MainActivity başarıyla başlatıldı!")
             
         } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ MainActivity başlatma hatası", e)
             Toast.makeText(this, "Başlatma hatası: ${e.message}", Toast.LENGTH_LONG).show()
             e.printStackTrace()
         }
@@ -148,7 +163,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun handleQRResult(qrContent: String) {
         try {
+            android.util.Log.d("MainActivity", "📷 QR kod tarandı: $qrContent")
             val connectionInfo = com.google.gson.Gson().fromJson(qrContent, ConnectionInfo::class.java)
+            android.util.Log.d("MainActivity", "✅ QR kod parse edildi: ${connectionInfo.serverUrl}")
             
             MaterialAlertDialogBuilder(this)
                 .setTitle("Sunucuya Bağlan")
@@ -160,17 +177,26 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 .show()
                 
         } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ QR kod parse hatası", e)
             Toast.makeText(this, "Geçersiz QR kod: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun connectToServer(connectionInfo: ConnectionInfo) {
         try {
+            android.util.Log.d("MainActivity", "🔗 Sunucuya bağlanıyor: ${connectionInfo.serverUrl}")
             preferenceManager.saveConnectionInfo(connectionInfo)
+            android.util.Log.d("MainActivity", "✅ Connection info kaydedildi")
+            
             startNotificationService()
+            android.util.Log.d("MainActivity", "✅ NotificationService başlatıldı")
+            
             updateConnectionStatus()
+            android.util.Log.d("MainActivity", "✅ UI güncellendi")
+            
             Toast.makeText(this, "Sunucuya bağlanıyor...", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ Sunucu bağlantı hatası", e)
             Toast.makeText(this, "Bağlantı hatası: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
