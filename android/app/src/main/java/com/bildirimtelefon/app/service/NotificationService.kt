@@ -56,9 +56,11 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             if (intent?.getStringExtra("action") == "show_test_notification") {
                 val title = intent.getStringExtra("title") ?: "Test"
                 val message = intent.getStringExtra("message") ?: "Test mesajı"
+                Log.d(TAG, "🧪 Test notification action alındı: $title")
                 showTestNotification(title, message)
             } else {
                 // Normal başlatma - WebSocket'e bağlan
+                Log.d(TAG, "🔄 Normal başlatma - WebSocket'e bağlanıyor...")
                 connectToServer()
             }
             
@@ -101,11 +103,10 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
                 reconnectionDelay = 2000
             }
             
-            // HTTP URL'yi WebSocket URL'ye çevir
-            val socketUrl = serverUrl.replace("http://", "ws://").replace("https://", "wss://")
-            Log.d(TAG, "WebSocket URL: $socketUrl")
+            // Socket.IO için HTTP URL kullanılır (ws:// değil!)
+            Log.d(TAG, "Socket.IO URL: $serverUrl")
             
-            socket = IO.socket(socketUrl, options)
+            socket = IO.socket(serverUrl, options)
             
             socket?.on(Socket.EVENT_CONNECT) {
                 Log.d(TAG, "✅ WebSocket bağlantısı kuruldu")

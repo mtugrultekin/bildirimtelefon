@@ -242,16 +242,23 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         try {
             val isConnected = preferenceManager.isConnected()
             val serverUrl = preferenceManager.getServerUrl()
+            val serviceRunning = NotificationService.isRunning
+            
+            android.util.Log.d("MainActivity", "🔍 Bağlantı durumu kontrol:")
+            android.util.Log.d("MainActivity", "  - isConnected: $isConnected")
+            android.util.Log.d("MainActivity", "  - serverUrl: $serverUrl")
+            android.util.Log.d("MainActivity", "  - serviceRunning: $serviceRunning")
             
             if (isConnected && serverUrl.isNotEmpty()) {
-                connectionStatusText.text = "Bağlı: $serverUrl"
+                val statusText = if (serviceRunning) "✅ Bağlı: $serverUrl" else "⏳ Bağlanıyor: $serverUrl"
+                connectionStatusText.text = statusText
                 connectionStatusText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
                 connectButton.text = "Bağlantıyı Kes"
                 connectButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_light))
                 testNotificationButton.isEnabled = true
                 testVoiceButton.isEnabled = true
             } else {
-                connectionStatusText.text = "Bağlı değil"
+                connectionStatusText.text = "❌ Bağlı değil"
                 connectionStatusText.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
                 connectButton.text = "QR Kod Tarat"
                 connectButton.setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_blue_bright))
@@ -259,20 +266,39 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 testVoiceButton.isEnabled = false
             }
         } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ UI güncelleme hatası", e)
             Toast.makeText(this, "UI güncelleme hatası: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun testNotification() {
         try {
+            android.util.Log.d("MainActivity", "🧪 Test bildirimi başlatılıyor...")
+            
+            // Önce bağlantı durumunu kontrol et
+            if (!preferenceManager.isConnected()) {
+                Toast.makeText(this, "Önce sunucuya bağlanın!", Toast.LENGTH_LONG).show()
+                return
+            }
+            
+            // Servis çalışıyor mu kontrol et
+            if (!NotificationService.isRunning) {
+                android.util.Log.d("MainActivity", "⚠️ NotificationService çalışmıyor, başlatılıyor...")
+                startNotificationService()
+                Toast.makeText(this, "Servis başlatılıyor, lütfen tekrar deneyin", Toast.LENGTH_LONG).show()
+                return
+            }
+            
             val intent = Intent("com.bildirimtelefon.app.TEST_NOTIFICATION")
             intent.putExtra("title", "Test Bildirimi")
-            intent.putExtra("message", "Bu bir test bildirimidir.")
+            intent.putExtra("message", "Bu bir test bildirimidir. Zaman: ${Date()}")
             intent.putExtra("urgent", false)
             sendBroadcast(intent)
             
+            android.util.Log.d("MainActivity", "✅ Test bildirimi broadcast gönderildi")
             Toast.makeText(this, "Test bildirimi gönderildi", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "❌ Test bildirimi hatası", e)
             Toast.makeText(this, "Test bildirimi hatası: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
