@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.speech.tts.TextToSpeech
@@ -15,18 +17,20 @@ import androidx.core.app.NotificationManagerCompat
 import com.bildirimtelefon.app.MainActivity
 import com.bildirimtelefon.app.R
 import com.bildirimtelefon.app.utils.PreferenceManager
-import io.socket.client.IO
-import io.socket.client.Socket
+import okhttp3.*
 import org.json.JSONObject
-import java.net.URISyntaxException
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class NotificationService : Service(), TextToSpeech.OnInitListener {
     
-    private var socket: Socket? = null
+    private var webSocket: WebSocket? = null
+    private var okHttpClient: OkHttpClient? = null
     private lateinit var preferenceManager: PreferenceManager
     private var textToSpeech: TextToSpeech? = null
     private var isConnected = false
+    private var heartbeatHandler = Handler(Looper.getMainLooper())
+    private var reconnectHandler = Handler(Looper.getMainLooper())
     
     companion object {
         private const val TAG = "NotificationService"
@@ -42,9 +46,17 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             preferenceManager = PreferenceManager(this)
             textToSpeech = TextToSpeech(this, this)
             createNotificationChannels()
-            Log.d(TAG, "NotificationService oluşturuldu")
+            
+            // OkHttp client oluştur
+            okHttpClient = OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build()
+                
+            Log.d(TAG, "✅ NotificationService oluşturuldu")
         } catch (e: Exception) {
-            Log.e(TAG, "NotificationService oluşturma hatası", e)
+            Log.e(TAG, "❌ NotificationService oluşturma hatası", e)
         }
     }
 
@@ -65,9 +77,9 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             }
             
             isRunning = true
-            Log.d(TAG, "NotificationService başlatıldı")
+            Log.d(TAG, "✅ NotificationService başlatıldı")
         } catch (e: Exception) {
-            Log.e(TAG, "NotificationService başlatma hatası", e)
+            Log.e(TAG, "❌ NotificationService başlatma hatası", e)
         }
         return START_STICKY
     }
@@ -77,9 +89,11 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             isRunning = false
             disconnectFromServer()
             textToSpeech?.shutdown()
-            Log.d(TAG, "NotificationService durduruldu")
+            heartbeatHandler.removeCallbacksAndMessages(null)
+            reconnectHandler.removeCallbacksAndMessages(null)
+            Log.d(TAG, "✅ NotificationService durduruldu")
         } catch (e: Exception) {
-            Log.e(TAG, "NotificationService durdurma hatası", e)
+            Log.e(TAG, "❌ NotificationService durdurma hatası", e)
         }
         super.onDestroy()
     }
@@ -89,89 +103,91 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
     private fun connectToServer() {
         val serverUrl = preferenceManager.getServerUrl()
         if (serverUrl.isEmpty()) {
-            Log.e(TAG, "Sunucu URL'si boş")
+            Log.e(TAG, "❌ Sunucu URL'si boş")
             return
         }
 
         try {
-            Log.d(TAG, "Sunucuya bağlanıyor: $serverUrl")
+            Log.d(TAG, "🔗 Sunucuya bağlanıyor: $serverUrl")
             
-            val options = IO.Options().apply {
-                timeout = 10000
-                reconnection = true
-                reconnectionAttempts = Integer.MAX_VALUE
-                reconnectionDelay = 2000
-            }
+            // Socket.IO endpoint'ine bağlan
+            val socketUrl = "$serverUrl/socket.io/?EIO=4&transport=websocket"
+            Log.d(TAG, "📡 WebSocket URL: $socketUrl")
             
-            // Socket.IO için HTTP URL kullanılır (ws:// değil!)
-            Log.d(TAG, "Socket.IO URL: $serverUrl")
-            
-            socket = IO.socket(serverUrl, options)
-            
-            socket?.on(Socket.EVENT_CONNECT) {
-                Log.d(TAG, "✅ WebSocket bağlantısı kuruldu")
-                isConnected = true
-                updateForegroundNotification()
-                registerDevice()
-                startHeartbeat()
-            }
+            val request = Request.Builder()
+                .url(socketUrl)
+                .build()
 
-            socket?.on(Socket.EVENT_DISCONNECT) {
-                Log.d(TAG, "❌ WebSocket bağlantısı kesildi")
-                isConnected = false
-                updateForegroundNotification()
-            }
+            webSocket = okHttpClient?.newWebSocket(request, object : WebSocketListener() {
+                override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Log.d(TAG, "✅ WebSocket bağlantısı kuruldu!")
+                    isConnected = true
+                    updateForegroundNotification()
+                    
+                    // Socket.IO handshake
+                    webSocket.send("40") // Socket.IO connect message
+                    
+                    // Cihazı kaydet
+                    registerDevice()
+                    
+                    // Heartbeat başlat
+                    startHeartbeat()
+                }
 
-            socket?.on(Socket.EVENT_CONNECT_ERROR) { args ->
-                Log.e(TAG, "❌ WebSocket bağlantı hatası: ${args.contentToString()}")
-                isConnected = false
-                updateForegroundNotification()
-            }
-
-            // Bildirim alma
-            socket?.on("new-notification") { args ->
-                Log.d(TAG, "📨 Yeni bildirim alındı")
-                if (args.isNotEmpty()) {
+                override fun onMessage(webSocket: WebSocket, text: String) {
+                    Log.d(TAG, "📨 WebSocket mesaj alındı: $text")
+                    
                     try {
-                        val data = args[0] as JSONObject
-                        handleNotification(data)
+                        // Socket.IO mesaj formatını parse et
+                        if (text.startsWith("42")) {
+                            // Socket.IO event message
+                            val eventData = text.substring(2)
+                            val jsonArray = org.json.JSONArray(eventData)
+                            val eventName = jsonArray.getString(0)
+                            
+                            when (eventName) {
+                                "new-notification" -> {
+                                    val notificationData = jsonArray.getJSONObject(1)
+                                    handleNotification(notificationData)
+                                }
+                                "emergency-notification" -> {
+                                    val notificationData = jsonArray.getJSONObject(1)
+                                    handleEmergencyNotification(notificationData)
+                                }
+                                "voice-message" -> {
+                                    val voiceData = jsonArray.getJSONObject(1)
+                                    handleVoiceMessage(voiceData)
+                                }
+                            }
+                        }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Bildirim parse hatası", e)
+                        Log.e(TAG, "❌ Mesaj parse hatası", e)
                     }
                 }
-            }
 
-            // Acil durum bildirimi
-            socket?.on("emergency-notification") { args ->
-                Log.d(TAG, "🚨 Acil durum bildirimi alındı")
-                if (args.isNotEmpty()) {
-                    try {
-                        val data = args[0] as JSONObject
-                        handleEmergencyNotification(data)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Acil durum bildirimi parse hatası", e)
-                    }
+                override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.d(TAG, "⚠️ WebSocket kapanıyor: $code - $reason")
                 }
-            }
 
-            // Sesli mesaj
-            socket?.on("voice-message") { args ->
-                Log.d(TAG, "🔊 Sesli mesaj alındı")
-                if (args.isNotEmpty()) {
-                    try {
-                        val data = args[0] as JSONObject
-                        handleVoiceMessage(data)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Sesli mesaj parse hatası", e)
-                    }
+                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                    Log.d(TAG, "❌ WebSocket kapandı: $code - $reason")
+                    isConnected = false
+                    updateForegroundNotification()
+                    
+                    // Yeniden bağlanmayı dene
+                    scheduleReconnect()
                 }
-            }
 
-            socket?.connect()
-            Log.d(TAG, "WebSocket bağlantısı başlatıldı")
+                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    Log.e(TAG, "❌ WebSocket bağlantı hatası", t)
+                    isConnected = false
+                    updateForegroundNotification()
+                    
+                    // Yeniden bağlanmayı dene
+                    scheduleReconnect()
+                }
+            })
             
-        } catch (e: URISyntaxException) {
-            Log.e(TAG, "❌ Geçersiz sunucu URL'si: $serverUrl", e)
         } catch (e: Exception) {
             Log.e(TAG, "❌ WebSocket bağlantı genel hatası", e)
         }
@@ -179,13 +195,12 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
 
     private fun disconnectFromServer() {
         try {
-            socket?.disconnect()
-            socket?.off()
-            socket = null
+            webSocket?.close(1000, "Service stopped")
+            webSocket = null
             isConnected = false
-            Log.d(TAG, "WebSocket bağlantısı kapatıldı")
+            Log.d(TAG, "✅ WebSocket bağlantısı kapatıldı")
         } catch (e: Exception) {
-            Log.e(TAG, "WebSocket kapatma hatası", e)
+            Log.e(TAG, "❌ WebSocket kapatma hatası", e)
         }
     }
 
@@ -198,29 +213,45 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
                 put("appVersion", "1.0")
             }
             
-            socket?.emit("register-device", deviceInfo)
-            Log.d(TAG, "📱 Cihaz kaydedildi: $deviceInfo")
+            // Socket.IO event format: 42["event-name", data]
+            val registerMessage = """42["register-device",${deviceInfo}]"""
+            
+            webSocket?.send(registerMessage)
+            Log.d(TAG, "📱 Cihaz kaydı gönderildi: $deviceInfo")
         } catch (e: Exception) {
-            Log.e(TAG, "Cihaz kaydetme hatası", e)
+            Log.e(TAG, "❌ Cihaz kaydetme hatası", e)
         }
     }
 
     private fun startHeartbeat() {
-        try {
-            val heartbeatRunnable = object : Runnable {
-                override fun run() {
-                    if (isConnected && socket?.connected() == true) {
-                        socket?.emit("heartbeat")
+        heartbeatHandler.removeCallbacksAndMessages(null)
+        
+        val heartbeatRunnable = object : Runnable {
+            override fun run() {
+                try {
+                    if (isConnected && webSocket != null) {
+                        // Socket.IO heartbeat: 42["heartbeat"]
+                        webSocket?.send("""42["heartbeat"]""")
                         Log.d(TAG, "💓 Heartbeat gönderildi")
-                        android.os.Handler(mainLooper).postDelayed(this, 30000) // 30 saniye
+                        heartbeatHandler.postDelayed(this, 30000) // 30 saniye
                     } else {
                         Log.d(TAG, "❌ Heartbeat durdu - bağlantı yok")
                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Heartbeat hatası", e)
                 }
             }
-            android.os.Handler(mainLooper).postDelayed(heartbeatRunnable, 30000)
-        } catch (e: Exception) {
-            Log.e(TAG, "Heartbeat başlatma hatası", e)
+        }
+        heartbeatHandler.postDelayed(heartbeatRunnable, 30000)
+    }
+
+    private fun scheduleReconnect() {
+        if (isRunning && !isConnected) {
+            reconnectHandler.removeCallbacksAndMessages(null)
+            reconnectHandler.postDelayed({
+                Log.d(TAG, "🔄 Yeniden bağlanma denemesi...")
+                connectToServer()
+            }, 5000) // 5 saniye sonra yeniden dene
         }
     }
 
@@ -239,7 +270,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             sendNotificationStatus(id, "delivered")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Bildirim işleme hatası", e)
+            Log.e(TAG, "❌ Bildirim işleme hatası", e)
         }
     }
 
@@ -249,7 +280,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             val title = data.optString("title", "🚨 ACİL DURUM")
             val message = data.getString("message")
 
-            Log.d(TAG, "🚨 Acil durum bildirimi işleniyor: $title - $message")
+            Log.d(TAG, "🚨 ACİL DURUM bildirimi işleniyor: $title - $message")
 
             showNotification(id, title, message, true, true, true)
             
@@ -264,7 +295,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             sendNotificationStatus(id, "delivered")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Acil durum bildirimi işleme hatası", e)
+            Log.e(TAG, "❌ Acil durum bildirimi işleme hatası", e)
         }
     }
 
@@ -285,7 +316,24 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             sendNotificationStatus(id, "delivered")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Sesli mesaj işleme hatası", e)
+            Log.e(TAG, "❌ Sesli mesaj işleme hatası", e)
+        }
+    }
+
+    private fun sendNotificationStatus(notificationId: String, status: String) {
+        try {
+            val statusData = JSONObject().apply {
+                put("notificationId", notificationId)
+                put("status", status)
+                put("timestamp", System.currentTimeMillis())
+            }
+            
+            // Socket.IO event format
+            val statusMessage = """42["notification-status",${statusData}]"""
+            webSocket?.send(statusMessage)
+            Log.d(TAG, "📤 Bildirim durumu gönderildi: $status")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Bildirim durumu gönderme hatası", e)
         }
     }
 
@@ -335,22 +383,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             Log.d(TAG, "✅ Bildirim gösterildi: $title")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Bildirim gösterme hatası", e)
-        }
-    }
-
-    private fun sendNotificationStatus(notificationId: String, status: String) {
-        try {
-            val statusData = JSONObject().apply {
-                put("notificationId", notificationId)
-                put("status", status)
-                put("timestamp", System.currentTimeMillis())
-            }
-            
-            socket?.emit("notification-status", statusData)
-            Log.d(TAG, "📤 Bildirim durumu gönderildi: $status")
-        } catch (e: Exception) {
-            Log.e(TAG, "Bildirim durumu gönderme hatası", e)
+            Log.e(TAG, "❌ Bildirim gösterme hatası", e)
         }
     }
 
@@ -360,7 +393,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.notify(FOREGROUND_ID, notification)
         } catch (e: Exception) {
-            Log.e(TAG, "Foreground notification güncelleme hatası", e)
+            Log.e(TAG, "❌ Foreground notification güncelleme hatası", e)
         }
     }
 
@@ -369,23 +402,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
             Log.d(TAG, "🧪 Test bildirimi gösteriliyor: $title - $message")
             showNotification("test_${System.currentTimeMillis()}", title, message, false, true, true)
         } catch (e: Exception) {
-            Log.e(TAG, "Test notification hatası", e)
-        }
-    }
-
-    override fun onInit(status: Int) {
-        try {
-            if (status == TextToSpeech.SUCCESS) {
-                val result = textToSpeech?.setLanguage(Locale("tr", "TR"))
-                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    textToSpeech?.setLanguage(Locale.ENGLISH)
-                }
-                Log.d(TAG, "✅ TextToSpeech başlatıldı")
-            } else {
-                Log.e(TAG, "❌ TextToSpeech başlatılamadı")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "TextToSpeech init hatası", e)
+            Log.e(TAG, "❌ Test notification hatası", e)
         }
     }
 
@@ -426,7 +443,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
                 Log.d(TAG, "✅ Notification channels oluşturuldu")
                 
             } catch (e: Exception) {
-                Log.e(TAG, "Notification channel oluşturma hatası", e)
+                Log.e(TAG, "❌ Notification channel oluşturma hatası", e)
             }
         }
     }
@@ -441,12 +458,12 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
 
             val statusText = when {
                 isConnected -> "✅ Sunucuya bağlı"
-                socket != null -> "🔄 Bağlanıyor..."
+                webSocket != null -> "🔄 Bağlanıyor..."
                 else -> "⏳ Bağlantı bekleniyor..."
             }
 
             return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-                .setContentTitle("📱 Bildirim Telefon Aktif")
+                .setContentTitle("📱 Bildirim Telefon")
                 .setContentText(statusText)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentIntent(pendingIntent)
@@ -455,7 +472,7 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
                 .build()
                 
         } catch (e: Exception) {
-            Log.e(TAG, "Foreground notification oluşturma hatası", e)
+            Log.e(TAG, "❌ Foreground notification oluşturma hatası", e)
             
             // Fallback basit notification
             return Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
@@ -463,6 +480,22 @@ class NotificationService : Service(), TextToSpeech.OnInitListener {
                 .setContentText("Servis aktif")
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .build()
+        }
+    }
+
+    override fun onInit(status: Int) {
+        try {
+            if (status == TextToSpeech.SUCCESS) {
+                val result = textToSpeech?.setLanguage(Locale("tr", "TR"))
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    textToSpeech?.setLanguage(Locale.ENGLISH)
+                }
+                Log.d(TAG, "✅ TextToSpeech başlatıldı")
+            } else {
+                Log.e(TAG, "❌ TextToSpeech başlatılamadı")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ TextToSpeech init hatası", e)
         }
     }
 }

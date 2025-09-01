@@ -233,6 +233,127 @@ app.get('/api/devices', (req, res) => {
     });
 });
 
+// HTTP ile cihaz kaydetme (WebSocket alternatifi)
+app.post('/api/register-device', (req, res) => {
+    try {
+        const { deviceId, deviceName, deviceModel, androidVersion, appVersion } = req.body;
+        
+        if (!deviceId) {
+            return res.status(400).json({ error: 'Device ID gerekli' });
+        }
+
+        const device = {
+            id: deviceId,
+            deviceName: deviceName || 'Android Cihaz',
+            deviceModel: deviceModel || 'Bilinmeyen',
+            androidVersion: androidVersion || 'Bilinmeyen',
+            appVersion: appVersion || '1.0',
+            connectedAt: new Date(),
+            lastSeen: new Date(),
+            type: 'http'
+        };
+        
+        connectedDevices.set(deviceId, device);
+        console.log('📱 HTTP ile Android cihaz kaydedildi:', device.deviceName);
+        console.log('📊 Toplam kayıtlı cihaz sayısı:', connectedDevices.size);
+        
+        // Web arayüzüne cihaz listesini gönder
+        const deviceList = Array.from(connectedDevices.values());
+        io.emit('devices-updated', deviceList);
+
+        res.json({
+            success: true,
+            message: 'Cihaz kaydedildi',
+            deviceId: deviceId
+        });
+
+    } catch (error) {
+        console.error('❌ HTTP cihaz kaydetme hatası:', error);
+        res.status(500).json({
+            error: 'Cihaz kaydedilemedi',
+            details: error.message
+        });
+    }
+});
+
+// Cihaz kaydını sil
+app.delete('/api/unregister-device/:deviceId', (req, res) => {
+    try {
+        const { deviceId } = req.params;
+        const device = connectedDevices.get(deviceId);
+        
+        if (device) {
+            connectedDevices.delete(deviceId);
+            console.log('📱 Cihaz kaydı silindi:', device.deviceName);
+            
+            // Web arayüzüne güncellemeyi gönder
+            io.emit('devices-updated', Array.from(connectedDevices.values()));
+        }
+
+        res.json({ success: true, message: 'Cihaz kaydı silindi' });
+    } catch (error) {
+        console.error('❌ Cihaz kayıt silme hatası:', error);
+        res.status(500).json({ error: 'Cihaz kaydı silinemedi' });
+    }
+});
+
+// Cihaza özel bildirimler getir
+app.get('/api/notifications-for-device/:deviceId', (req, res) => {
+    try {
+        const { deviceId } = req.params;
+        
+        // Bu cihaza gönderilmemiş bildirimleri bul
+        const pendingNotifications = notifications.filter(n => 
+            (!n.deviceId || n.deviceId === deviceId) && 
+            n.status === 'pending' &&
+            !n.deliveredTo?.includes(deviceId)
+        );
+
+        // Cihazın son görülme zamanını güncelle
+        const device = connectedDevices.get(deviceId);
+        if (device) {
+            device.lastSeen = new Date();
+        }
+
+        res.json({
+            success: true,
+            notifications: pendingNotifications
+        });
+
+    } catch (error) {
+        console.error('❌ Cihaz bildirimleri getirme hatası:', error);
+        res.status(500).json({ error: 'Bildirimler getirilemedi' });
+    }
+});
+
+// Bildirim teslim edildi işaretle
+app.post('/api/notification-delivered', (req, res) => {
+    try {
+        const { notificationId, deviceId, status } = req.body;
+        
+        const notification = notifications.find(n => n.id === notificationId);
+        if (notification) {
+            notification.status = status;
+            notification.deliveredAt = new Date();
+            
+            // Hangi cihazlara teslim edildiğini takip et
+            if (!notification.deliveredTo) {
+                notification.deliveredTo = [];
+            }
+            if (!notification.deliveredTo.includes(deviceId)) {
+                notification.deliveredTo.push(deviceId);
+            }
+            
+            console.log(`✅ Bildirim teslim edildi: ${notificationId} → ${deviceId}`);
+        }
+
+        res.json({ success: true, message: 'Durum güncellendi' });
+    } catch (error) {
+        console.error('❌ Bildirim durum güncelleme hatası:', error);
+        res.status(500).json({ error: 'Durum güncellenemedi' });
+    }
+});
+
 // Bildirim geçmişi
 app.get('/api/notifications', (req, res) => {
     const { limit = 50, offset = 0 } = req.query;

@@ -52,9 +52,9 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
 
-        <!-- WebSocket Servisi -->
+        <!-- HTTP Polling Notification Servisi -->
         <service
-            android:name=".service.NotificationService"
+            android:name=".service.SimpleNotificationService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse">

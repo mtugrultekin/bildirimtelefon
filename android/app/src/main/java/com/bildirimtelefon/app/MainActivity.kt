@@ -12,7 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.bildirimtelefon.app.service.NotificationService
+import com.bildirimtelefon.app.service.SimpleNotificationService
 import com.bildirimtelefon.app.utils.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.journeyapps.barcodescanner.ScanContract
@@ -214,7 +214,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun startNotificationService() {
         try {
-            val intent = Intent(this, NotificationService::class.java)
+            val intent = Intent(this, SimpleNotificationService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(intent)
             } else {
@@ -227,7 +227,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun stopNotificationService() {
         try {
-            val intent = Intent(this, NotificationService::class.java)
+            val intent = Intent(this, SimpleNotificationService::class.java)
             stopService(intent)
         } catch (e: Exception) {
             Toast.makeText(this, "Servis durdurulamadı: ${e.message}", Toast.LENGTH_LONG).show()
@@ -235,14 +235,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun isServiceRunning(): Boolean {
-        return NotificationService.isRunning
+        return SimpleNotificationService.isRunning
     }
 
     private fun updateConnectionStatus() {
         try {
             val isConnected = preferenceManager.isConnected()
             val serverUrl = preferenceManager.getServerUrl()
-            val serviceRunning = NotificationService.isRunning
+            val serviceRunning = SimpleNotificationService.isRunning
             
             android.util.Log.d("MainActivity", "🔍 Bağlantı durumu kontrol:")
             android.util.Log.d("MainActivity", "  - isConnected: $isConnected")
@@ -282,8 +282,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
             
             // Servis çalışıyor mu kontrol et
-            if (!NotificationService.isRunning) {
-                android.util.Log.d("MainActivity", "⚠️ NotificationService çalışmıyor, başlatılıyor...")
+            if (!SimpleNotificationService.isRunning) {
+                android.util.Log.d("MainActivity", "⚠️ SimpleNotificationService çalışmıyor, başlatılıyor...")
                 startNotificationService()
                 Toast.makeText(this, "Servis başlatılıyor, lütfen tekrar deneyin", Toast.LENGTH_LONG).show()
                 return
