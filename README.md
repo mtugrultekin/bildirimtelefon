@@ -1,163 +1,251 @@
-# 📱 Bildirim Telefon - Notification System
+# 📱 Bildirim Telefon - Android Localhost System
 
-Web üzerinden telefona bildirim gönderebileceğiniz modern ve kullanıcı dostu bir uygulama.
+Android telefonu bildirim cihazı olarak kullanan localhost tabanlı bildirim sistemi. Web arayüzünden Android telefona gerçek zamanlı bildirimler gönderebilirsiniz.
 
 ## ✨ Özellikler
 
-- 📱 **SMS Gönderimi**: Tekil ve toplu SMS gönderimi
-- 📞 **Sesli Arama**: Otomatik sesli mesaj gönderimi
-- 🚨 **Acil Durum Bildirimi**: Hızlı acil durum bildirimleri
-- 📊 **İstatistikler**: Gerçek zamanlı bildirim istatistikleri
-- 📝 **Geçmiş**: Tüm bildirim geçmişi ve durumları
-- 🎨 **Modern Arayüz**: Responsive ve kullanıcı dostu web arayüzü
-- 🔄 **Otomatik Yenileme**: Anlık durum güncellemeleri
+### 🖥️ Web Sunucu
+- **Modern Web Arayüzü**: Bootstrap 5 ile responsive tasarım
+- **WebSocket Bağlantısı**: Gerçek zamanlı iletişim
+- **QR Kod Üretimi**: Android app bağlantısı için
+- **Cihaz Yönetimi**: Bağlı Android cihazları görüntüleme
+- **Bildirim Geçmişi**: Tüm gönderilen bildirimlerin kaydı
+
+### 📱 Android Uygulaması
+- **QR Kod Tarama**: Kolay sunucu bağlantısı
+- **Gerçek Bildirimler**: Android sistem bildirimleri
+- **Sesli Mesajlar**: Text-to-Speech ile sesli okuma
+- **Acil Durum Modu**: Özel ses ve titreşim
+- **Arka Plan Servisi**: Sürekli bağlantı
+- **Otomatik Başlatma**: Telefon açıldığında otomatik başlat
+
+### 🔄 İletişim Özellikleri
+- **Tekil Bildirim**: Belirli cihaza bildirim gönderme
+- **Toplu Bildirim**: Tüm bağlı cihazlara gönderme
+- **Sesli Mesaj**: Android'de sesli okuma
+- **Acil Durum**: Özel ses ve titreşim ile acil bildirim
+- **Durum Takibi**: Bildirimlerin teslim durumu
 
 ## 🛠️ Kurulum
 
-### 1. Bağımlılıkları Yükle
+### 1. Web Sunucu Kurulumu
+
 ```bash
+# Bağımlılıkları yükle
 npm install
-```
 
-### 2. Ortam Değişkenlerini Ayarla
-`.env.example` dosyasını `.env` olarak kopyalayın ve Twilio bilgilerinizi girin:
-
-```bash
-cp .env.example .env
-```
-
-`.env` dosyasını düzenleyin:
-```env
-# Twilio Configuration
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=your_twilio_phone_number
-
-# Server Configuration
-PORT=3000
-NODE_ENV=development
-
-# Notification Settings (Acil durum için)
-ADMIN_PHONE_NUMBERS=+90XXXXXXXXXX,+90XXXXXXXXXX
-```
-
-### 3. Uygulamayı Başlat
-
-**Geliştirme modu:**
-```bash
-npm run dev
-```
-
-**Üretim modu:**
-```bash
+# Sunucuyu başlat
 npm start
 ```
 
-Uygulama `http://localhost:3000` adresinde çalışacak.
+Sunucu `http://localhost:3000` adresinde çalışacak.
 
-## 📋 API Endpoints
+### 2. Android Uygulaması Kurulumu
 
-### SMS Gönderimi
-- `POST /api/notification/sms` - Tekil SMS gönder
-- `POST /api/notification/sms/bulk` - Toplu SMS gönder
+#### Android Studio ile:
+```bash
+# Android Studio'da projeyi aç
+cd android
+# Android Studio ile build et ve cihaza yükle
+```
 
-### Arama
-- `POST /api/notification/call` - Sesli arama yap
+#### Komut satırından:
+```bash
+cd android
+./gradlew assembleDebug
+# APK dosyası: android/app/build/outputs/apk/debug/app-debug.apk
+```
 
-### Acil Durum
-- `POST /api/notification/emergency` - Acil durum bildirimi
+## 📋 Kullanım Adımları
 
-### Geçmiş ve İstatistikler
-- `GET /api/notification/history` - Bildirim geçmişi
-- `GET /api/notification/stats` - İstatistikler
+### 1. Sistemi Başlat
+1. Web sunucusunu çalıştır: `npm start`
+2. Tarayıcıda `http://localhost:3000` adresini aç
+3. Android uygulamasını telefonuna yükle
 
-### Sistem Durumu
-- `GET /health` - Sistem sağlığı kontrolü
+### 2. Android Telefonu Bağla
+1. Android uygulamasını aç
+2. "QR Kod Tarat" butonuna tıkla
+3. Web arayüzünde "QR Kod Göster" butonuna tıkla
+4. QR kodu Android uygulaması ile tarat
+5. "Bağlan" butonuna tıkla
+6. Gerekli izinleri ver (bildirim, kamera)
 
-## 🔧 Twilio Kurulumu
+### 3. Bildirim Gönder
+1. Web arayüzünde "Bildirim Gönder" bölümünü kullan
+2. Başlık ve mesajı yaz
+3. Hedef cihazı seç (veya tüm cihazlar)
+4. Seçenekleri işaretle (acil, ses, titreşim)
+5. "Bildirim Gönder" butonuna tıkla
 
-1. [Twilio](https://www.twilio.com) hesabı oluşturun
-2. Phone Number satın alın (Türkiye için +90 ile başlayan)
-3. Account SID ve Auth Token'ınızı alın
-4. Bu bilgileri `.env` dosyasına ekleyin
+### 4. Sesli Mesaj Gönder
+1. "Sesli Mesaj Gönder" bölümünü kullan
+2. Okunacak metni yaz
+3. Hedef cihazı seç
+4. "Sesli Mesaj Gönder" butonuna tıkla
 
-## 📱 Kullanım
+### 5. Acil Durum Bildirimi
+1. Kırmızı "ACİL DURUM GÖNDER" butonuna tıkla
+2. Onay ver
+3. Tüm bağlı cihazlara özel ses ve titreşimle bildirim gönderilir
 
-### Web Arayüzü
-- Ana sayfa: `http://localhost:3000`
-- Modern ve responsive tasarım
-- Gerçek zamanlı istatistikler
-- Kolay form doldurma
+## 🏗️ Sistem Mimarisi
 
-### SMS Gönderimi
-1. "SMS Gönder" bölümünde telefon numarası girin
-2. Mesajınızı yazın
-3. İsteğe bağlı "Acil Bildirim" seçeneğini işaretleyin
-4. "SMS Gönder" butonuna tıklayın
+```
+┌─────────────────┐    WebSocket     ┌─────────────────┐
+│   Web Browser   │◄────────────────►│  Node.js Server │
+│  (localhost:3000)│                  │   (Express +    │
+└─────────────────┘                  │   Socket.io)    │
+                                     └─────────┬───────┘
+                                               │
+                                     WebSocket │
+                                               ▼
+                                     ┌─────────────────┐
+                                     │  Android App    │
+                                     │  (QR Scanner +  │
+                                     │  Notifications) │
+                                     └─────────────────┘
+```
 
-### Toplu SMS
-1. "Toplu SMS Gönder" bölümünde her satıra bir numara yazın
-2. Gönderilecek mesajı yazın
-3. "Toplu SMS Gönder" butonuna tıklayın
+## 📂 Proje Yapısı
 
-### Sesli Arama
-1. "Sesli Arama Yap" bölümünde telefon numarası girin
-2. Okunacak mesajı yazın (Türkçe sesli okunacak)
-3. "Arama Yap" butonuna tıklayın
+```
+bildirimtelefon/
+├── server/
+│   └── index.js              # Node.js WebSocket sunucusu
+├── web/
+│   ├── index.html           # Web arayüzü
+│   ├── app.js               # Frontend JavaScript
+│   └── style.css            # CSS stilleri
+├── android/
+│   ├── app/
+│   │   ├── src/main/java/   # Android Kotlin kodları
+│   │   ├── src/main/res/    # Android kaynakları
+│   │   └── build.gradle     # Android bağımlılıkları
+│   ├── build.gradle         # Proje yapılandırması
+│   └── settings.gradle      # Gradle ayarları
+├── package.json             # Node.js bağımlılıkları
+└── README.md                # Bu dosya
+```
 
-### Acil Durum
-1. Kırmızı "ACİL DURUM" butonuna tıklayın
-2. Tüm kayıtlı numaralara otomatik SMS gönderilir
-3. İlk numaraya otomatik arama yapılır
+## 🔧 API Endpoints
 
-## 📊 Özellikler Detayı
+### Bildirim API'leri
+- `POST /api/send-notification` - Bildirim gönder
+- `POST /api/send-voice` - Sesli mesaj gönder
+- `POST /api/emergency` - Acil durum bildirimi
 
-### Dashboard
-- Toplam bildirim sayısı
-- Bugün gönderilen bildirimler
-- SMS ve arama istatistikleri
-- Son aktiviteler listesi
+### Cihaz Yönetimi
+- `GET /api/devices` - Bağlı cihazları listele
+- `GET /api/notifications` - Bildirim geçmişi
 
-### Bildirim Geçmişi
-- Tüm gönderilen bildirimlerin listesi
-- Durum bilgileri (başarılı/başarısız)
-- Zaman damgası
-- Hata mesajları (varsa)
+### Sistem
+- `GET /health` - Sistem durumu
+- `GET /api/qr-code` - QR kod üret
 
-### Otomatik Özellikler
-- Telefon numarası formatlaması
-- Karakter sayacı (SMS için)
-- Otomatik yenileme
-- Toast bildirimleri
+## 📱 Android App Özellikleri
 
-## 🔒 Güvenlik
+### İzinler
+- **INTERNET**: WebSocket bağlantısı
+- **POST_NOTIFICATIONS**: Bildirim gösterme
+- **CAMERA**: QR kod tarama
+- **VIBRATE**: Titreşim
+- **FOREGROUND_SERVICE**: Arka plan servisi
+- **WAKE_LOCK**: Ekran kilidi
 
-- Ortam değişkenleri ile hassas bilgi koruması
-- CORS desteği
-- Hata yönetimi
-- Input validasyonu
+### Servisler
+- **NotificationService**: WebSocket bağlantısı ve bildirim alma
+- **BootReceiver**: Otomatik başlatma
+- **NotificationReceiver**: Bildirim işleme
 
 ## 🚀 Geliştirme
 
+### Web Sunucu Geliştirme
 ```bash
-# Geliştirme modunda çalıştır (nodemon ile)
-npm run dev
-
-# Test çalıştır
-npm test
-
-# Üretim için build
-npm start
+npm run dev  # nodemon ile otomatik yeniden başlatma
 ```
 
-## 📞 Destek
+### Android Geliştirme
+```bash
+cd android
+./gradlew assembleDebug  # Debug APK oluştur
+./gradlew installDebug   # Cihaza yükle
+```
 
-Herhangi bir sorun yaşarsanız:
-1. `.env` dosyanızın doğru yapılandırıldığından emin olun
-2. Twilio hesabınızın aktif olduğunu kontrol edin
-3. Console loglarını kontrol edin
-4. Network sekmesinde API çağrılarını inceleyin
+## 🔒 Güvenlik
+
+- **Localhost Only**: Sadece yerel ağda çalışır
+- **WebSocket Güvenliği**: Socket.io ile güvenli bağlantı
+- **İzin Kontrolü**: Android'de gerekli izinler
+- **Hata Yönetimi**: Kapsamlı hata yakalama
+
+## 📊 Özellikler Detayı
+
+### Web Arayüzü
+- Gerçek zamanlı cihaz durumu
+- Bildirim geçmişi ve istatistikler
+- QR kod üretimi ve gösterimi
+- Responsive tasarım (mobil uyumlu)
+- Toast bildirimleri
+
+### Android App
+- Modern Material Design
+- QR kod tarayıcısı (ZXing)
+- Text-to-Speech (Türkçe/İngilizce)
+- Ön plan servisi (sürekli çalışma)
+- Bildirim kanalları (normal/acil)
+- Ayarlar sayfası
+
+## 🐛 Sorun Giderme
+
+### Web Sunucu Çalışmıyor
+1. Port 3000'in boş olduğunu kontrol et
+2. `npm install` komutu çalıştırıldı mı?
+3. Node.js sürümü 14+ olmalı
+
+### Android App Bağlanmıyor
+1. Telefon ve bilgisayar aynı WiFi'de mi?
+2. QR kod doğru tarandı mı?
+3. Bildirim izni verildi mi?
+4. Sunucu çalışıyor mu? (`http://localhost:3000/health`)
+
+### Bildirimler Gelmiyor
+1. Android'de bildirim izni aktif mi?
+2. Uygulama arka planda çalışıyor mu?
+3. WebSocket bağlantısı aktif mi?
+4. Cihaz listesinde telefon görünüyor mu?
+
+## 📞 Test Etme
+
+### 1. Sistem Testi
+```bash
+# Sunucu durumu
+curl http://localhost:3000/health
+
+# QR kod testi
+curl http://localhost:3000/api/qr-code
+
+# Cihaz listesi
+curl http://localhost:3000/api/devices
+```
+
+### 2. Android App Testi
+- Ana ekranda "Test Bildirimi Gönder" butonu
+- "Test Sesli Mesaj" butonu
+- Ayarlar menüsünden özelleştirme
 
 ## 📄 Lisans
 
 MIT License
+
+---
+
+## 🎯 Kullanım Senaryoları
+
+- **Ev Otomasyonu**: Akıllı ev sistemlerinden bildirim alma
+- **İş Yerleri**: Personel bilgilendirme sistemi
+- **Güvenlik**: Alarm ve güvenlik bildirimleri
+- **Geliştirme**: Test bildirimleri ve debug mesajları
+- **Acil Durum**: Hızlı uyarı sistemi
+
+**Not**: Bu sistem localhost'ta çalışır, internet bağlantısı gerektirmez. Telefon ve bilgisayar aynı WiFi ağında olmalıdır.
