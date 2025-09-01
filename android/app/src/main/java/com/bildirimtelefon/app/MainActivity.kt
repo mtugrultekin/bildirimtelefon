@@ -199,15 +199,16 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun testVoiceMessage() {
         if (textToSpeech?.isSpeaking == false) {
+            val message = getString(R.string.default_voice_message)
             textToSpeech?.speak(
-                "Bu bir test sesli mesajıdır. Bildirim telefon sistemi çalışıyor.",
+                message,
                 TextToSpeech.QUEUE_FLUSH,
                 null,
                 "test_message"
             )
-            Toast.makeText(this, "Test sesli mesajı çalıyor", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.test_voice_playing), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Sesli mesaj zaten çalıyor", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.voice_already_playing), Toast.LENGTH_SHORT).show()
         }
     }
 

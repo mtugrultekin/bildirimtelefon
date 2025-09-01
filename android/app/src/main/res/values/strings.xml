@@ -44,7 +44,7 @@
     <!-- Bildirimler -->
     <string name="notification_title">Test Bildirimi</string>
     <string name="notification_message">Bu bir test bildirimidir.</string>
-    <string name="test_voice_message">Bu bir test sesli mesajıdır. Bildirim telefon sistemi çalışıyor.</string>
+    <string name="default_voice_message">Bu bir test sesli mesajıdır. Bildirim telefon sistemi çalışıyor.</string>
     
     <!-- Servis -->
     <string name="notification_service_title">Bildirim Telefon Aktif</string>
